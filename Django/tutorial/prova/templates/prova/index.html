@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <form method="post" action="/prova/people/edit-person">
+  {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit">
+    </form>
+      {% if people%}
+      {%for person in people %}
+      <li>
+        <a href="{% url 'prova:person' person.id%}">{{person.name}}</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>nessuna persona presente nel database </p>
+    {% endif %}
+  </body>
+</html>
