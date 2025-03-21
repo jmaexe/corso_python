@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <form
+      method="POST"
+      action="{% if id %}{% url url id %}{% else %}{% url url %}{% endif %}"
+    >
+      {% csrf_token %} {{ form.as_p }}
+      <input type="submit" value="{{labelForm}}" />
+    </form>
+    <a href="{% url 'prova:people' %}">torna indietro</a>
+  </body>
+</html>

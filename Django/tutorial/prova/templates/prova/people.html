@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    {% if people%}
+    <table>
+      {%for person in people %}
+      <tr>
+        <th>{{person.name}}</th>
+        <td>{{person.age}}</td>
+        <td>{{person.phoneNumber}}</td>
+        <td>{{person.email}}</td>
+        <td>{{person.birth_date}}</td>
+        <td>
+          <a href="{% url 'prova:edit_person' person.id%}">
+            <button>edit</button>
+          </a>
+        </td>
+        <td>
+          <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="id" value="{{person.id}}" />
+            <input type="submit" value="delete" />
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p>nessuna persona presente nel database</p>
+    {% endif %}
+    <a href="{% url 'prova:add_person' %}">aggiungi una persona</a>
+  </body>
+</html>

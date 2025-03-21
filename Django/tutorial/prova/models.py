@@ -10,4 +10,4 @@ class Person(models.Model) :
     phoneNumber = models.CharField(max_length=10,default="")
     birth_date = models.DateTimeField()
     def __str__(self):
-        return self.name + ", " + str(self.age) + ", " + self.email + ", " + self.phoneNumber
+        return self.name + ", " + str(self.age) + ", " + self.email + ", " + self.phoneNumber + ", " +str(self.birth_date) 

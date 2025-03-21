@@ -1,8 +1,8 @@
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.template import loader
 
-from prova.forms import PersonForm
+from prova.forms import  PersonForm
 from prova.models import Person
 
 def index(request):
@@ -10,26 +10,40 @@ def index(request):
 
 def people(request):
     people = Person.objects.all()
+    if request.method == "POST" : 
+        id = request.POST.get("id")
+        person =get_object_or_404(Person,id=id) 
+        person.delete()
     context = {"people": people}
-    template = loader.get_template('prova/index.html')
+    template = loader.get_template('prova/people.html')
     return HttpResponse(template.render(context,request))
 
 def person(request,id) :
-    try:
-        person = Person.objects.get(id=id)
-    except Person.DoesNotExist: 
-        return HttpResponse("Person not found <a href='/'>go back</a")
+    person = get_object_or_404(Person,id=id)
     return HttpResponse(person)
 
-def form(request,id) :
+
+def edit_person(request,id) :
     person = Person.objects.get(id=id)
+    if request.method == "POST" : 
+        form = PersonForm(request.POST,instance=person)
+        if form.is_valid() : 
+            form.save()
+            return HttpResponseRedirect("/prova/people")
+
     form = PersonForm(instance=person)
-    context = {"form": form}
-    template = loader.get_template('prova/index.html')
+    context = {"form": form,"id": id,"labelForm" : "Edit Person","url" : "prova:edit_person"}
+    template = loader.get_template('prova/PersonForm.html')
     return HttpResponse(template.render(context,request))
 
-def edit_person(request) :
-    a = PersonForm(request.POST)
-    print(a.data)
-    return HttpResponse("edit person" )
-
+def add_person(request) : 
+    if request.method == "POST" : 
+        form = PersonForm(request.POST)
+        if form.is_valid() : 
+            form.save()
+            return HttpResponseRedirect("/prova/people") 
+    else : 
+        form = PersonForm()
+    context = {"form": form,"labelForm" : "Add Person", "url": "prova:add_person"}
+    template = loader.get_template('prova/PersonForm.html')
+    return HttpResponse(template.render(context,request))
