@@ -1,3 +1,5 @@
 avviare progetto daphne -b 0.0.0.0 -p 8000 tris_project.asgi:application
 
 0.0.0.0 per tutti le interfacce ma deve essere su porta 8000
+
+redis-cli del nome della key (tris_game_state) oppure redis-cli FLUSHALL

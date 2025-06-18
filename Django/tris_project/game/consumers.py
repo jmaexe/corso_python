@@ -2,21 +2,20 @@ import json
 import redis.asyncio as aioredis
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-REDIS_GAME_STATE_KEY = "tris_game_state"
+# REDIS_GAME_STATE_KEY = "tris_game_state"
 
 class TrisConsumer(AsyncWebsocketConsumer):
-    room_name = "game_room"
 
     async def connect(self):
+        self.room_name = self.scope["url_route"]["kwargs"]['room_name']
         # Connetti al Redis
         self.redis = await aioredis.from_url("redis://127.0.0.1")
-
         # Unisci il client al gruppo
         await self.channel_layer.group_add(self.room_name, self.channel_name)
         await self.accept()
 
         # Carica lo stato da Redis, o inizializza
-        raw_state = await self.redis.get(REDIS_GAME_STATE_KEY)
+        raw_state = await self.redis.get(f"{self.room_name}_state")
         if raw_state:
             game_state = json.loads(raw_state)
         else:
@@ -31,7 +30,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
             symbol = "X" if "X" not in game_state["players"].values() else "O"
             game_state["players"][self.channel_name] = symbol
             # Salva su Redis
-            await self.redis.set(REDIS_GAME_STATE_KEY, json.dumps(game_state))
+            await self.redis.set(f"{self.room_name}_state", json.dumps(game_state))
             await self.send(json.dumps({"type": "init", "symbol": symbol}))
             await self.channel_layer.group_send(self.room_name, {"type": "game_update"})
         else:
@@ -40,7 +39,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         # Carica stato da Redis
-        raw_state = await self.redis.get(REDIS_GAME_STATE_KEY)
+        raw_state = await self.redis.get(f"{self.room_name}_state")
         if raw_state:
             game_state = json.loads(raw_state)
 
@@ -50,7 +49,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
                 game_state["board"] = [""] * 9
                 game_state["turn"] = "X"
             # Salva su Redis
-            await self.redis.set(REDIS_GAME_STATE_KEY, json.dumps(game_state))
+            await self.redis.set(f"{self.room_name}_state", json.dumps(game_state))
             await self.channel_layer.group_send(self.room_name, {"type": "reset_game"})
 
         await self.channel_layer.group_discard(self.room_name, self.channel_name)
@@ -62,7 +61,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
         if data["type"] == "move":
             index = data["index"]
 
-            raw_state = await self.redis.get(REDIS_GAME_STATE_KEY)
+            raw_state = await self.redis.get(f"{self.room_name}_state")
             if not raw_state:
                 return  # no game state? ignora
 
@@ -79,7 +78,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
                 winner = self.check_winner(game_state["board"])
 
                 # Salva stato aggiornato
-                await self.redis.set(REDIS_GAME_STATE_KEY, json.dumps(game_state))
+                await self.redis.set(f"{self.room_name}_state", json.dumps(game_state))
 
                 await self.channel_layer.group_send(self.room_name, {
                     "type": "game_update",
@@ -87,7 +86,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
                 })
 
     async def game_update(self, event):
-        raw_state = await self.redis.get(REDIS_GAME_STATE_KEY)
+        raw_state = await self.redis.get(f"{self.room_name}_state")
         if raw_state:
             game_state = json.loads(raw_state)
         else:
