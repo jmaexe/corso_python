@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-ubq9!ikwq)x^2c13ve#w04)_-3rz6l^h)yi0(4=t4cv1y6a+e*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1","192.168.1.2"]
 
 ASGI_APPLICATION = "tris_project.asgi.application"
 
@@ -38,16 +38,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "game",
     "channels",
-    'game',
 ]
 
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG' : {
-            "hosts" : [("127.0.0.1",6379)],
-        }
+       'CONFIG' : {"hosts" : [("127.0.0.1", 6379)]}
     },
 }
 
