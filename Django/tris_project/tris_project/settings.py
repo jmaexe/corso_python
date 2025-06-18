@@ -25,8 +25,15 @@ SECRET_KEY = "django-insecure-ubq9!ikwq)x^2c13ve#w04)_-3rz6l^h)yi0(4=t4cv1y6a+e*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1","192.168.1.2"]
 
+ALLOWED_HOSTS = ["localhost", "127.0.0.1",]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
 ASGI_APPLICATION = "tris_project.asgi.application"
 
 # Application definition
@@ -40,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "game",
     "channels",
+    "corsheaders",
 ]
 
 CHANNEL_LAYERS = {
@@ -51,6 +59,7 @@ CHANNEL_LAYERS = {
 
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
