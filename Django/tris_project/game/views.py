@@ -1,4 +1,5 @@
 import json
+import copy
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from .utils import get_best_move, check_winner
@@ -38,7 +39,7 @@ def play_bot(request):
     elif bot_symbol == "O" and o_count >= x_count:
         return JsonResponse({"error": "Non è il turno del bot"}, status=400)
     # Calcola la mossa migliore del bot
-    best_move = get_best_move(board[:], bot_symbol)
+    best_move = get_best_move(copy.deepcopy(board), bot_symbol)
     print(best_move)
     print("dopo best move : " , board)
     if best_move is not None:
@@ -51,7 +52,7 @@ def play_bot(request):
     print("best move : " , best_move)
 
     return JsonResponse({
-        "board": board,
+        "board":  board,
         "index": best_move,
         "winner": winner,
     })
