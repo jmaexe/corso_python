@@ -73,6 +73,7 @@ def get_best_move(board: List[str], bot_symbol: str) -> Optional[int]:
                     best_score = min(best_score, score)
             return best_score
 
+
     best_score = -float("inf")
     best_move = None
     for i in range(9):
@@ -84,4 +85,5 @@ def get_best_move(board: List[str], bot_symbol: str) -> Optional[int]:
                 best_score = score
                 best_move = i
 
+    print(board)
     return best_move

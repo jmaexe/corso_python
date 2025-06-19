@@ -29,13 +29,26 @@ def play_bot(request):
     if winner:
         return JsonResponse({"winner": winner})
 
+  # Verifica se è il turno del bot
+    x_count = board.count("X")
+    o_count = board.count("O")
+
+    if bot_symbol == "X" and x_count > o_count:
+        return JsonResponse({"error": "Non è il turno del bot"}, status=400)
+    elif bot_symbol == "O" and o_count >= x_count:
+        return JsonResponse({"error": "Non è il turno del bot"}, status=400)
     # Calcola la mossa migliore del bot
-    best_move = get_best_move(board, bot_symbol)
+    best_move = get_best_move(board[:], bot_symbol)
+    print(best_move)
+    print("dopo best move : " , board)
     if best_move is not None:
         board[best_move] = bot_symbol
 
     # Dopo la mossa del bot, ricontrolla il vincitore
     winner = check_winner(board)
+    print("dopo check winner : " , board)
+    print("winner : " , winner)
+    print("best move : " , best_move)
 
     return JsonResponse({
         "board": board,
