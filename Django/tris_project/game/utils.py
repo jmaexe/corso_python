@@ -1,5 +1,8 @@
 # utils.py
 
+import json
+import random
+import string
 from typing import List, Optional
 
 def check_winner(board: List[str]) -> Optional[str]:
@@ -87,3 +90,54 @@ def get_best_move(board: List[str], bot_symbol: str) -> Optional[int]:
 
     print(board)
     return best_move
+
+
+async def get_rooms(redis):
+    """
+    Recupera tutte le stanze attive da Redis.
+    Ritorna una lista di nomi delle stanze.
+    """
+    cursor = 0
+    keys = []
+
+    while True:
+        cursor, partial_keys = await redis.scan(cursor, match="game:*:state",count=50)
+        keys.extend(partial_keys)
+        if cursor == 0:
+            break
+
+    rooms = [key.decode().split(":")[1] for key in keys]
+    return rooms
+
+
+
+def generate_room_name(length=6):
+    chars = string.ascii_lowercase + string.digits
+    return ''.join(random.choices(chars, k=length))
+
+
+async def find_rooms_with_one_player(redis):
+    """
+    Trova le stanze con un solo giocatore.
+    Ritorna una lista di nomi delle stanze.
+    """
+    
+    rooms = await get_rooms(redis)
+    single_player_rooms = []
+
+    for room in rooms:
+        raw_state = await redis.get(f"game:{room}:state")
+        if raw_state:
+            game_state = json.loads(raw_state)
+            if len(game_state.get("players", {})) == 1:
+                single_player_rooms.append(room)
+
+    return single_player_rooms
+
+async def find_one_room_with_one_player(redis):
+    """
+    Trova una stanza con un solo giocatore.
+    Ritorna il nome della stanza o None se non trovata.
+    """
+    single_player_rooms = await find_rooms_with_one_player(redis)
+    return single_player_rooms[0] if single_player_rooms else None

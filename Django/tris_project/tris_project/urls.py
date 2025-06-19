@@ -18,9 +18,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from game.views import  play_bot
+from game.views import  play_bot,rooms
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("play-bot/", play_bot, name="play_bot"),
+    path("rooms/", rooms, name="rooms"),
 ]
