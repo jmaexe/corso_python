@@ -6,9 +6,9 @@ async def clear_keys():
     keys = await redis.keys("game:*:state")
     if keys:
         await redis.delete(*keys)
-        print(f"✅ {len(keys)} chiavi cancellate.")
+        print(f" {len(keys)} chiavi cancellate.")
     else:
-        print("🟢 Nessuna chiave trovata.")
+        print(" Nessuna chiave trovata.")
     await redis.close()
 
 asyncio.run(clear_keys())

@@ -14,7 +14,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"].get("room_name", None)
         self.redis = await aioredis.from_url("redis://127.0.0.1")
-
+        self.redis.set("player_name", "bo")
         logger.info(f"Connessione richiesta per stanza: {self.room_name}")
         if not self.room_name:
             logger.info("Nessuna stanza specificata, cerco una stanza con un solo giocatore...")
@@ -39,6 +39,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
         else:
             game_state = {
                 "players": {},
+                "player_names": {},  
                 "board": [""] * 9,
                 "turn": "X",
             }
@@ -76,7 +77,28 @@ class TrisConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        if data["type"] == "init" :
+            player_name = data.get("player_name", "Anonymous")
+            logger.info(f"Ricevuto nome giocatore: {player_name} per client {self.channel_name}")
 
+            raw_state = await self.redis.get(self.redis_key)
+            if raw_state:
+                game_state = json.loads(raw_state)
+            else:
+                game_state = {
+                    "players": {},
+                    "player_names": {},  # aggiungiamo questa mappa per associare channel_name -> player_name
+                    "board": [""] * 9,
+                    "turn": "X",
+                }
+
+            # Salva il nome del giocatore
+            game_state["player_names"][self.channel_name] = player_name
+            await self.redis.set(self.redis_key, json.dumps(game_state))
+
+            # Puoi mandare conferma al client
+            await self.send(json.dumps({"type": "init_confirm", "player_name": player_name}))
+            return 
         if data["type"] == "move":
             index = data["index"]
             logger.debug(f"Ricevuta mossa da {self.channel_name} sulla cella {index}")

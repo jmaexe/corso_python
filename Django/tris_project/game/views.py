@@ -49,7 +49,6 @@ async def rooms(request):
         return HttpResponseBadRequest("Solo GET permesso")
     
     redis = await aioredis.from_url("redis://127.0.0.1")
-    
     cursor = 0
     keys = []
 
@@ -66,10 +65,11 @@ async def rooms(request):
             continue
 
         game_state = json.loads(raw_state)
+        print(f"Game state for {key}: {game_state}")
         if game_state.get("players"):
             room_name = key.decode() if isinstance(key, bytes) else key
             room_name = room_name.split(":")[1]
-            rooms.append((room_name, game_state["players"])) 
+            # rooms.append((room_name, game_state["player_names"][0])) 
 
     await redis.close()
 
