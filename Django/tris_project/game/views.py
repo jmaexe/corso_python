@@ -1,62 +1,48 @@
+import copy
 import json
 import redis.asyncio as aioredis
-import copy
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .utils import get_best_move, check_winner
-
+from game.utils import check_winner, get_move, is_valid_data
 
 
 @csrf_exempt
 def play_bot(request):
+    # Permette solo richieste POST
     if request.method != "POST":
         return HttpResponseBadRequest("Solo POST permesso")
 
-    try:
-        data = json.loads(request.body)
-        board = data.get("board")
-        bot_symbol = data.get("bot_symbol")
-        if not board or bot_symbol not in ("X", "O"):
-            return JsonResponse({"error": "Dati non validi"}, status=400)
+    result = is_valid_data(request)
+    if isinstance(result, JsonResponse):
+        return result  # errore
 
-        # Controlla che la board sia valida
-        if len(board) != 9 or any(cell not in ("X", "O", "") for cell in board):
-            return JsonResponse({"error": "Board non valida"}, status=400)
+    board, bot_symbol, difficulty = result  # dati validi
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "JSON non valido"}, status=400)
 
-    # Controlla se c'è già un vincitore
+    # Verifica se c'è già un vincitore
     winner = check_winner(board)
     if winner:
         return JsonResponse({"winner": winner})
 
-  # Verifica se è il turno del bot
-    x_count = board.count("X")
-    o_count = board.count("O")
+    # Calcola la prossima mossa del bot (usando la funzione `get_move`)
+    move = get_move(copy.deepcopy(board), bot_symbol, difficulty)
 
-    if bot_symbol == "X" and x_count > o_count:
-        return JsonResponse({"error": "Non è il turno del bot"}, status=400)
-    elif bot_symbol == "O" and o_count >= x_count:
-        return JsonResponse({"error": "Non è il turno del bot"}, status=400)
-    # Calcola la mossa migliore del bot
-    best_move = get_best_move(copy.deepcopy(board), bot_symbol)
-    print(best_move)
-    print("dopo best move : " , board)
-    if best_move is not None:
-        board[best_move] = bot_symbol
+    if move is not None:
+        board[move] = bot_symbol  # Applica la mossa del bot
 
-    # Dopo la mossa del bot, ricontrolla il vincitore
+    # Dopo la mossa, controlla di nuovo se c'è un vincitore
     winner = check_winner(board)
-    print("dopo check winner : " , board)
-    print("winner : " , winner)
-    print("best move : " , best_move)
 
+    # Risponde con:
+    # - la board aggiornata
+    # - l'indice della mossa fatta dal bot
+    # - l'eventuale vincitore (X, O o None)
     return JsonResponse({
-        "board":  board,
-        "index": best_move,
+        "board": board,
+        "index": move,
         "winner": winner,
     })
+
 
 async def rooms(request):
     if request.method != "GET":
@@ -83,7 +69,7 @@ async def rooms(request):
         if game_state.get("players"):
             room_name = key.decode() if isinstance(key, bytes) else key
             room_name = room_name.split(":")[1]
-            rooms.append(room_name) 
+            rooms.append((room_name, game_state["players"])) 
 
     await redis.close()
 

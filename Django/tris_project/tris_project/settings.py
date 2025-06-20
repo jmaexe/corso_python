@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-ubq9!ikwq)x^2c13ve#w04)_-3rz6l^h)yi0(4=t4cv1y6a+e*
 DEBUG = True
 
 
-ALLOWED_HOSTS = ["192.168.1.2"]
+ALLOWED_HOSTS = ["192.168.1.2","192.168.17.28"]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
@@ -143,29 +143,29 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "WARNING",
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
-            "propagate": False,
-        },
-        "game": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
-    },
+# LOGGING = {
+#     "version": 1,
+#     "disable_existing_loggers": False,
+#     "handlers": {
+#         "console": {
+#             "class": "logging.StreamHandler",
+#         },
+#     },
+#     "root": {
+#         "handlers": ["console"],
+#         "level": "WARNING",
+#     },
+#     "loggers": {
+#         "django": {
+#             "handlers": ["console"],
+#             "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+#             "propagate": False,
+#         },
+#         "game": {
+#             "handlers": ["console"],
+#             "level": "DEBUG",
+#             "propagate": False,
+#         },
+#     },
    
-}
+# }

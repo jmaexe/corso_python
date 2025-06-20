@@ -47,7 +47,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
             symbol = "X" if "X" not in game_state["players"].values() else "O"
             game_state["players"][self.channel_name] = symbol
             await self.redis.set(self.redis_key, json.dumps(game_state))
-            await self.send(json.dumps({"type": "init", "symbol": symbol}))
+            await self.send(json.dumps({"type": "init", "symbol": symbol,"room_name": self.room_name}))
             await self.channel_layer.group_send(self.room_name, {"type": "game_update"})
             logger.info(f"Client {self.channel_name} assegnato simbolo '{symbol}' nella stanza {self.room_name}")
         else:
