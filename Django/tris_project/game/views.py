@@ -63,13 +63,13 @@ async def rooms(request):
         raw_state = await redis.get(key)
         if not raw_state: 
             continue
-
         game_state = json.loads(raw_state)
-        print(f"Game state for {key}: {game_state}")
+        print(f"Game state for {key}: {game_state["player_names"]}")
         if game_state.get("players"):
             room_name = key.decode() if isinstance(key, bytes) else key
             room_name = room_name.split(":")[1]
-            # rooms.append((room_name, game_state["player_names"][0])) 
+            player_names = list(game_state["player_names"].values()) 
+            rooms.append({"room_name": room_name, "players": player_names}) 
 
     await redis.close()
 

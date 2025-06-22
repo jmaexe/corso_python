@@ -8,13 +8,12 @@ import logging
 from game.utils import check_winner, find_one_room_with_one_player, find_rooms_with_one_player, generate_room_name
 
 logger = logging.getLogger("game")
-
+TTL = 600 # Tempo di vita delle stanze in secondi (10 minuti)
 class TrisConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"].get("room_name", None)
         self.redis = await aioredis.from_url("redis://127.0.0.1")
-        self.redis.set("player_name", "bo")
         logger.info(f"Connessione richiesta per stanza: {self.room_name}")
         if not self.room_name:
             logger.info("Nessuna stanza specificata, cerco una stanza con un solo giocatore...")
@@ -29,8 +28,6 @@ class TrisConsumer(AsyncWebsocketConsumer):
 
         self.redis_key = f"game:{self.room_name}:state"
 
-        await self.channel_layer.group_add(self.room_name, self.channel_name)
-        await self.accept()
         logger.info(f"Client {self.channel_name} connesso alla stanza {self.room_name}")
 
         raw_state = await self.redis.get(self.redis_key)
@@ -47,7 +44,12 @@ class TrisConsumer(AsyncWebsocketConsumer):
         if len(game_state["players"]) < 2:
             symbol = "X" if "X" not in game_state["players"].values() else "O"
             game_state["players"][self.channel_name] = symbol
-            await self.redis.set(self.redis_key, json.dumps(game_state))
+            await self.redis.set(self.redis_key, json.dumps(game_state),ex=TTL)
+
+            
+            await self.accept()
+            await self.channel_layer.group_add(self.room_name, self.channel_name)
+
             await self.send(json.dumps({"type": "init", "symbol": symbol,"room_name": self.room_name}))
             await self.channel_layer.group_send(self.room_name, {"type": "game_update"})
             logger.info(f"Client {self.channel_name} assegnato simbolo '{symbol}' nella stanza {self.room_name}")
@@ -68,8 +70,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
                 await self.redis.delete(self.redis_key)
                 logger.info(f"Stanza {self.room_name} svuotata. Reset della partita.")
             else : 
-                await self.redis.set(self.redis_key, json.dumps(game_state))
-            await self.redis.set(self.redis_key, json.dumps(game_state))
+                await self.redis.set(self.redis_key, json.dumps(game_state),ex=TTL)
             await self.channel_layer.group_send(self.room_name, {"type": "reset_game"})
 
         await self.channel_layer.group_discard(self.room_name, self.channel_name)
@@ -92,10 +93,12 @@ class TrisConsumer(AsyncWebsocketConsumer):
                     "turn": "X",
                 }
 
+            print(f"Game state prima dell'inizializzazione: {game_state}")
             # Salva il nome del giocatore
             game_state["player_names"][self.channel_name] = player_name
-            await self.redis.set(self.redis_key, json.dumps(game_state))
+            await self.redis.set(self.redis_key, json.dumps(game_state),ex=TTL)
 
+            print(f"Game state dopo l'inizializzazione: {game_state}")
             # Puoi mandare conferma al client
             await self.send(json.dumps({"type": "init_confirm", "player_name": player_name}))
             return 
@@ -123,7 +126,7 @@ class TrisConsumer(AsyncWebsocketConsumer):
                 if winner:
                     logger.info(f"Vittoria di '{winner}' nella stanza {self.room_name}")
 
-                await self.redis.set(self.redis_key, json.dumps(game_state))
+                await self.redis.set(self.redis_key, json.dumps(game_state),ex=TTL)
                 await self.channel_layer.group_send(self.room_name, {
                     "type": "game_update",
                     "winner": winner
