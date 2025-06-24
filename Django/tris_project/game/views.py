@@ -70,7 +70,6 @@ async def rooms(request):
         if not raw_state: 
             continue
         game_state = json.loads(raw_state)
-        logger.info(f"Game state for {key}: {game_state["player_names"]}")
         if game_state.get("players"):
             room_name = key.decode() if isinstance(key, bytes) else key
             room_name = room_name.split(":")[1]

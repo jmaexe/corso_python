@@ -35,12 +35,15 @@ CORS_ALLOW_METHODS = [
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-    "http://localhost:5174"
+    "http://localhost:5174",
+    "http://localhost:5175"
 
 ]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://localhost:5173",
+    "http://localhost:5175",
+
 ]
 ASGI_APPLICATION = "tris_project.asgi.application"
 

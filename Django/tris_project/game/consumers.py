@@ -21,12 +21,14 @@ class TrisConsumer(AsyncWebsocketConsumer):
                 logger.info(f"Nessuna stanza disponibile, generata nuova stanza: {self.room_name}")
             else:
                 logger.info(f"Trovata stanza con un solo giocatore: {self.room_name}")
-        else:
-            logger.info(f"Connessione richiesta per stanza: {self.room_name}")
 
         self.redis_key = f"game:{self.room_name}:state"
         logger.info(f"Client {self.channel_name} connesso alla stanza {self.room_name}")
 
+        # Accetta la connessione WebSocket
+        await self.accept()
+
+        #  Ricarica stato aggiornato da Redis dopo accept
         raw_state = await self.redis.get(self.redis_key)
         if raw_state:
             game_state = json.loads(raw_state)
@@ -38,52 +40,68 @@ class TrisConsumer(AsyncWebsocketConsumer):
                 "turn": "X",
             }
 
-        await self.accept()
-        if len(game_state["players"]) < 2:
-            symbol = "X" if "X" not in game_state["players"].values() else "O"
-            game_state["players"][self.channel_name] = symbol
-            await self.redis.set(self.redis_key, json.dumps(game_state), ex=TTL)
-
-            await self.channel_layer.group_add(self.room_name, self.channel_name)
-
-            await self.send(json.dumps({
-                "type": "init",
-                "symbol": symbol,
-                "room_name": self.room_name
-            }))
-
-            await self.channel_layer.group_send(self.room_name, {"type": "game_update"})
-
-            logger.info(f"Client {self.channel_name} assegnato simbolo '{symbol}' nella stanza {self.room_name}")
-
-            # Notifica se entrambi i giocatori sono connessi
-            if len(game_state["players"]) == 2:
-                logger.info(f"Entrambi i giocatori connessi nella stanza {self.room_name}, gioco pronto.")
-                await self.channel_layer.group_send(self.room_name, {"type": "game_ready"})
-        else:
+        #  Se ci sono già 2 giocatori, rifiuta la connessione
+        if len(game_state["players"]) >= 2:
             await self.send(json.dumps({"type": "full"}))
             logger.warning(f"Stanza {self.room_name} piena. Connessione rifiutata per {self.channel_name}")
             await self.close()
+            return
 
+        #  Aggiungi giocatore
+        symbol = "X" if "X" not in game_state["players"].values() else "O"
+        game_state["players"][self.channel_name] = symbol
+
+        # Salva stato e aggiungi al gruppo
+        await self.redis.set(self.redis_key, json.dumps(game_state), ex=TTL)
+        await self.channel_layer.group_add(self.room_name, self.channel_name)
+
+        await self.send(json.dumps({
+            "type": "init",
+            "symbol": symbol,
+            "room_name": self.room_name
+        }))
+
+        # Invia update a tutti i client nella stanza
+        await self.channel_layer.group_send(self.room_name, {"type": "game_update"})
+
+        logger.info(f"Client {self.channel_name} assegnato simbolo '{symbol}' nella stanza {self.room_name}")
+
+        #  Se entrambi i giocatori sono connessi
+        if len(game_state["players"]) == 2:
+            logger.info(f"Entrambi i giocatori connessi nella stanza {self.room_name}, gioco pronto.")
+            await self.channel_layer.group_send(self.room_name, {"type": "game_ready"})
+ 
     async def disconnect(self, close_code):
         logger.info(f"Disconnessione client {self.channel_name} dalla stanza {self.room_name} (code {close_code})")
 
         raw_state = await self.redis.get(self.redis_key)
-        if raw_state:
-            game_state = json.loads(raw_state)
-            game_state["players"].pop(self.channel_name, None)
+        if not raw_state:
+            return
 
-            if len(game_state["players"]) == 0:
-                await self.redis.delete(self.redis_key)
-                logger.info(f"Stanza {self.room_name} svuotata. Reset della partita.")
-            else:
-                await self.redis.set(self.redis_key, json.dumps(game_state), ex=TTL)
+        game_state = json.loads(raw_state)
 
-            await self.channel_layer.group_send(self.room_name, {"type": "reset_game"})
+        #  Se il client non era tra i giocatori registrati, non fare nulla
+        if self.channel_name not in game_state["players"]:
+            logger.info(f"{self.channel_name} non era registrato come giocatore, nessuna azione necessaria.")
+            await self.redis.close()
+            return
 
+        # ✅ Rimuovi solo se è un player reale
+        game_state["players"].pop(self.channel_name, None)
+        game_state["player_names"].pop(self.channel_name, None)
+
+        if len(game_state["players"]) == 0:
+            await self.redis.delete(self.redis_key)
+            logger.info(f"Stanza {self.room_name} svuotata. Reset della partita.")
+        else:
+            await self.redis.set(self.redis_key, json.dumps(game_state), ex=TTL)
+
+        await self.channel_layer.group_send(self.room_name, {"type": "reset_game"})
         await self.channel_layer.group_discard(self.room_name, self.channel_name)
         await self.redis.close()
+ 
 
+  
     async def receive(self, text_data):
         data = json.loads(text_data)
 
@@ -101,10 +119,9 @@ class TrisConsumer(AsyncWebsocketConsumer):
                     "board": [""] * 9,
                     "turn": "X",
                 }
-
+            logger.info("aggiungendo player ...")
             game_state["player_names"][self.channel_name] = player_name
             await self.redis.set(self.redis_key, json.dumps(game_state), ex=TTL)
-
             await self.send(json.dumps({"type": "init_confirm", "player_name": player_name}))
             return
 
