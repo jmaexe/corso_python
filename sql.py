@@ -13,6 +13,6 @@ try :
     
 except mysql.connector.Error as err:
     print("errore: ", err)
-inally:
+finally:
     cursor.close()
     conn.close()

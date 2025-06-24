@@ -209,6 +209,7 @@ async def find_one_room_with_one_player(redis):
 
 
 def is_valid_data(request: HttpRequest) -> Union[Tuple[list, str, str], JsonResponse]:
+    logger.info("Verifica dati della richiesta...")
     try:
         data = json.loads(request.body)
 

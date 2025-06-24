@@ -4,13 +4,19 @@ import redis.asyncio as aioredis
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from game.utils import check_winner, get_move, is_valid_data
+import logging
 
+logger = logging.getLogger("game")
 
 @csrf_exempt
 def play_bot(request):
     # Permette solo richieste POST
+    logger.info(f"Richiesta ricevuta: {request.method} {request.path}")
     if request.method != "POST":
         return HttpResponseBadRequest("Solo POST permesso")
+        
+    # Verifica i dati della richiesta
+    logger.info(f"Contenuto della richiesta: {request.body}")
 
     result = is_valid_data(request)
     if isinstance(result, JsonResponse):
@@ -64,7 +70,7 @@ async def rooms(request):
         if not raw_state: 
             continue
         game_state = json.loads(raw_state)
-        print(f"Game state for {key}: {game_state["player_names"]}")
+        logger.info(f"Game state for {key}: {game_state["player_names"]}")
         if game_state.get("players"):
             room_name = key.decode() if isinstance(key, bytes) else key
             room_name = room_name.split(":")[1]
